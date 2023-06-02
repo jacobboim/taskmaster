@@ -18,15 +18,17 @@ export const getTodosGroupedByColumn = async () => {
 
     acc.get(todo.status)!.todos.push({
       $id: todo.$id,
-      $createdAT: todo.$createdAT,
+      $createdAt: todo.$createdAt,
       title: todo.title,
       status: todo.status,
+      // get the image if it exists in the todo
       ...(todo.image && { image: JSON.parse(todo.image) }),
     });
 
     return acc;
   }, new Map<TypedColumn, Column>());
 
+  // if columns doesn't have inprogress, todo and done, add them with empty todos
   const columnTypes: TypedColumn[] = ["todo", "inprogress", "done"];
   for (const columnType of columnTypes) {
     if (!columns.get(columnType)) {
@@ -37,6 +39,7 @@ export const getTodosGroupedByColumn = async () => {
     }
   }
 
+  // sort columns by columnTypes
   const sortedColumns = new Map(
     Array.from(columns.entries()).sort(
       (a, b) => columnTypes.indexOf(a[0]) - columnTypes.indexOf(b[0])

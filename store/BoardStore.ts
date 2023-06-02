@@ -1,53 +1,53 @@
-import { create } from "zustand";
+import { ID, databases, storage } from "@/appwrite";
 import { getTodosGroupedByColumn } from "./lib/getTodosGroupedByColumn";
-import { databases, storage } from "@/appwrite";
-import { title } from "process";
 import uploadImage from "./lib/uploadImage";
-import { ID } from "appwrite";
+import { create } from "zustand";
 
 interface BoardState {
   board: Board;
   getBoard: () => void;
   setBoardState: (board: Board) => void;
   updateTodoInDB: (todo: Todo, columnId: TypedColumn) => void;
+  newTaskInput: string;
+  newTaskType: TypedColumn;
+  image: File | null;
+
   searchString: string;
   setSearchString: (searchString: string) => void;
-  deleteTask: (taskIndex: number, todoId: Todo, id: TypedColumn) => void;
-  newTaskInput: string;
-  setNewTaskInput: (input: string) => void;
-  newTaskType: TypedColumn;
-  setNewTaskType: (columnId: TypedColumn) => void;
-
-  image: File | null;
-  setImage: (image: File | null) => void;
 
   addTask: (todo: string, columnId: TypedColumn, image?: File | null) => void;
+  deleteTask: (taskIndex: number, todoId: Todo, id: TypedColumn) => void;
+
+  setNewTaskInput: (input: string) => void;
+  setNewTaskType: (columnId: TypedColumn) => void;
+  setImage: (image: File | null) => void;
 }
 
 export const useBoardStore = create<BoardState>((set, get) => ({
   board: {
     columns: new Map<TypedColumn, Column>(),
   },
+
   searchString: "",
   newTaskInput: "",
+  setSearchString: (searchString) => set({ searchString }),
   newTaskType: "todo",
   image: null,
 
-  setSearchString: (searchString: string) => set({ searchString }),
   getBoard: async () => {
     const board = await getTodosGroupedByColumn();
     set({ board });
   },
+
   setBoardState: (board) => set({ board }),
-  setImage: (image: File | null) => set({ image }),
-  setNewTaskType: (columnId: TypedColumn) => set({ newTaskType: columnId }),
 
   deleteTask: async (taskIndex: number, todo: Todo, id: TypedColumn) => {
-    const newColums = new Map(get().board.columns);
+    const newColumns = new Map(get().board.columns);
 
-    newColums.get(id)?.todos.splice(taskIndex, 1);
+    // delete todoId from newColumns
+    newColumns.get(id)?.todos.splice(taskIndex, 1);
 
-    set({ board: { columns: newColums } });
+    set({ board: { columns: newColumns } });
 
     if (todo.image) {
       await storage.deleteFile(todo.image.bucketId, todo.image.fileId);
@@ -60,7 +60,9 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     );
   },
 
-  setNewTaskInput: (input: string) => set({ newTaskInput: input }),
+  setNewTaskInput: (newTaskInput) => set({ newTaskInput }),
+  setNewTaskType: (columnId: TypedColumn) => set({ newTaskType: columnId }),
+  setImage: (image: File | null) => set({ image }),
 
   updateTodoInDB: async (todo, columnId) => {
     await databases.updateDocument(
